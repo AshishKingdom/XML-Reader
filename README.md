@@ -1,2 +1,2 @@
 # world-of-coding
-This is my world my coding &amp; imagination
+This is my world of my coding &amp; imagination
