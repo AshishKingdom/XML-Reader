@@ -14,19 +14,19 @@ FUNCTION readXML$ (file$, tag$, attribute$, unique$)
             LINE INPUT #f, tmp$
             IF UCASE$(LEFT$(tmp$, LEN(tag$) + 1)) = "<" + UCASE$(tag$) THEN
                 IF uniqueType = 1 THEN
-                    u$ = getXMLattributeValue("id", tmp$)
+                    u$ = getXMLAttributeValue("id", tmp$)
                     IF u$ = unique$ THEN
-                        readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                        readXML$ = getXMLAttributeValue(attribute$, tmp$)
                         EXIT WHILE
                     END IF
                 ELSEIF uniqueType = 2 THEN
-                    u$ = getXMLattributeValue("class", tmp$)
+                    u$ = getXMLAttributeValue("class", tmp$)
                     IF u$ = unique$ THEN
-                        readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                        readXML$ = getXMLAttributeValue(attribute$, tmp$)
                         EXIT WHILE
                     END IF
                 ELSE
-                    readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                    readXML$ = getXMLAttributeValue(attribute$, tmp$)
                     IF readXML$ <> "" THEN EXIT WHILE
                 END IF
             END IF
@@ -49,25 +49,25 @@ FUNCTION editXML% (file$, tag$, attribute$, unique$, newValue$)
             IF UCASE$(LEFT$(tmp$, LEN(tag$) + 1)) = "<" + UCASE$(tag$) THEN
                 IF uniqueType = 1 THEN
 
-                    u$ = getXMLattributeValue("id", tmp$)
+                    u$ = getXMLAttributeValue("id", tmp$)
                     IF u$ = unique$ THEN
-                        v = LEN(getXMLattributeValue(attribute$, tmp$))
-                        s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
+                        v = LEN(getXMLAttributeValue(attribute$, tmp$))
+                        s = getXMLStartingAttributeByte(attribute$, tmp$) + LEN(attribute$) + 1
                         tmp$ = LEFT$(tmp$, s) + newValue$ + RIGHT$(tmp$, LEN(tmp$) - (LEN(tmp$) - s + v + 1))
                         tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
                         editXML% = -1
                     END IF
                 ELSEIF uniqueType = 2 THEN
-                    u$ = getXMLattributeValue("class", tmp$)
+                    u$ = getXMLAttributeValue("class", tmp$)
                     IF u$ = unique$ THEN
-                        v = LEN(getXMLattributeValue(attribute$, tmp$))
+                        v = LEN(getXMLAttributeValue(attribute$, tmp$))
                         s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
                         tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
                         editXML% = -1
                     END IF
                 ELSE
-                    v = LEN(getXMLattributeValue(attribute$, tmp$))
-                    s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
+                    v = LEN(getXMLAttributeValue(attribute$, tmp$))
+                    s = getXMLStartingAttributeByte(attribute$, tmp$) + LEN(attribute$) + 1
                     tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
                     editXML% = -1
                 END IF
@@ -89,16 +89,16 @@ FUNCTION editXML% (file$, tag$, attribute$, unique$, newValue$)
     END IF
 END FUNCTION
 
-FUNCTION getXMLStartingattributeByte& (attribute$, xml_string$)
+FUNCTION getXMLStartingAttributeByte& (attribute$, xml_string$)
     FOR i = 1 TO LEN(xml_string$)
         ca$ = MID$(xml_string$, i, LEN(attribute$))
         IF UCASE$(ca$) = UCASE$(attribute$) THEN
-            getXMLStartingattributeByte = i
+            getXMLStartingAttributeByte = i
         END IF
     NEXT
 END FUNCTION
 
-FUNCTION getXMLattributeValue$ (attribute$, xml_string$)
+FUNCTION getXMLAttributeValue$ (attribute$, xml_string$)
     FOR i = 1 TO LEN(xml_string$)
         ca$ = MID$(xml_string$, i, LEN(attribute$))
         IF UCASE$(ca$) = UCASE$(attribute$) THEN
@@ -107,7 +107,7 @@ FUNCTION getXMLattributeValue$ (attribute$, xml_string$)
                 c$ = MID$(xml_string$, k, 1)
                 IF c$ = CHR$(34) THEN EXIT FOR
             NEXT
-            getXMLattributeValue$ = MID$(xml_string$, n, k - n)
+            getXMLAttributeValue$ = MID$(xml_string$, n, k - n)
             EXIT FUNCTION
         END IF
     NEXT
