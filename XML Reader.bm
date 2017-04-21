@@ -1,0 +1,183 @@
+'####################################
+'XML-Reader.bm By Ashish Kushwaha
+'Last update 4/21/2017
+'####################################
+
+
+FUNCTION readXML$ (file$, tag$, attribute$, unique$)
+    f = FREEFILE
+    IF LEFT$(unique$, 1) = "#" THEN unique$ = RIGHT$(unique$, LEN(unique$) - 1): uniqueType = 1 'id
+    IF LEFT$(unique$, 1) = "." THEN unique$ = RIGHT$(unique$, LEN(unique$) - 1): uniqueType = 2 'class
+    IF _FILEEXISTS(file$) THEN
+        OPEN file$ FOR INPUT AS #f
+        WHILE NOT EOF(f)
+            LINE INPUT #f, tmp$
+            IF UCASE$(LEFT$(tmp$, LEN(tag$) + 1)) = "<" + UCASE$(tag$) THEN
+                IF uniqueType = 1 THEN
+                    u$ = getXMLattributeValue("id", tmp$)
+                    IF u$ = unique$ THEN
+                        readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                        EXIT WHILE
+                    END IF
+                ELSEIF uniqueType = 2 THEN
+                    u$ = getXMLattributeValue("class", tmp$)
+                    IF u$ = unique$ THEN
+                        readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                        EXIT WHILE
+                    END IF
+                ELSE
+                    readXML$ = LTRIM$(RTRIM$(getXMLattributeValue(attribute$, tmp$)))
+                    IF readXML$ <> "" THEN EXIT WHILE
+                END IF
+            END IF
+        WEND
+        CLOSE #f
+    END IF
+END FUNCTION
+
+FUNCTION editXML% (file$, tag$, attribute$, unique$, newValue$)
+    IF LEFT$(unique$, 1) = "#" THEN unique$ = RIGHT$(unique$, LEN(unique$) - 1): uniqueType = 1 'id
+    IF LEFT$(unique$, 1) = "." THEN unique$ = RIGHT$(unique$, LEN(unique$) - 1): uniqueType = 2 'class
+    IF _FILEEXISTS(file$) THEN
+        f = FREEFILE
+        OPEN file$ FOR INPUT AS #f
+        ff = FREEFILE
+        OPEN file$ + ".inuse.tmp" FOR OUTPUT AS #ff
+        WHILE NOT EOF(f)
+            LINE INPUT #f, tmp$
+
+            IF UCASE$(LEFT$(tmp$, LEN(tag$) + 1)) = "<" + UCASE$(tag$) THEN
+                IF uniqueType = 1 THEN
+
+                    u$ = getXMLattributeValue("id", tmp$)
+                    IF u$ = unique$ THEN
+                        v = LEN(getXMLattributeValue(attribute$, tmp$))
+                        s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
+                        tmp$ = LEFT$(tmp$, s) + newValue$ + RIGHT$(tmp$, LEN(tmp$) - (LEN(tmp$) - s + v + 1))
+                        tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
+                        editXML% = -1
+                    END IF
+                ELSEIF uniqueType = 2 THEN
+                    u$ = getXMLattributeValue("class", tmp$)
+                    IF u$ = unique$ THEN
+                        v = LEN(getXMLattributeValue(attribute$, tmp$))
+                        s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
+                        tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
+                        editXML% = -1
+                    END IF
+                ELSE
+                    v = LEN(getXMLattributeValue(attribute$, tmp$))
+                    s = getXMLStartingattributeByte(attribute$, tmp$) + LEN(attribute$) + 1
+                    tmp$ = LEFT$(tmp$, s) + newValue$ + MID$(tmp$, s + v + 1, LEN(tmp$) - (s + v))
+                    editXML% = -1
+                END IF
+            END IF
+            PRINT #ff, tmp$
+        WEND
+        CLOSE #f
+        CLOSE #ff
+        tmp$ = ""
+        OPEN file$ FOR OUTPUT AS #f
+        OPEN file$ + ".inuse.tmp" FOR INPUT AS #ff
+        WHILE NOT EOF(ff)
+            LINE INPUT #ff, tmp$
+            PRINT #f, tmp$
+        WEND
+        CLOSE #f
+        CLOSE #ff
+        KILL file$ + ".inuse.tmp"
+    END IF
+END FUNCTION
+
+FUNCTION getXMLStartingattributeByte& (attribute$, xml_string$)
+    FOR i = 1 TO LEN(xml_string$)
+        ca$ = MID$(xml_string$, i, LEN(attribute$))
+        IF UCASE$(ca$) = UCASE$(attribute$) THEN
+            getXMLStartingattributeByte = i
+        END IF
+    NEXT
+END FUNCTION
+
+FUNCTION getXMLattributeValue$ (attribute$, xml_string$)
+    FOR i = 1 TO LEN(xml_string$)
+        ca$ = MID$(xml_string$, i, LEN(attribute$))
+        IF UCASE$(ca$) = UCASE$(attribute$) THEN
+            n = i + 2 + LEN(attribute$)
+            FOR k = n TO LEN(xml_string$)
+                c$ = MID$(xml_string$, k, 1)
+                IF c$ = CHR$(34) THEN EXIT FOR
+            NEXT
+            getXMLattributeValue$ = MID$(xml_string$, n, k - n)
+            EXIT FUNCTION
+        END IF
+    NEXT
+END FUNCTION
+
+FUNCTION wordCount& (baseString$, matchString$)
+    FOR i = 1 TO LEN(baseString$)
+        ca$ = MID$(baseString$, i, LEN(matchString$))
+        IF UCASE$(ca$) = UCASE$(matchString$) THEN
+            wordCount = wordCount + 1
+        END IF
+    NEXT
+END FUNCTION
+
+SUB writeXML (tag$, properties$, values$)
+    SHARED XMLFileHandle%
+    SHARED XMLValid
+    SHARED XMLFileName$
+    SHARED xmlerrormessage$
+    c1 = wordCount(properties$, ",") + 1
+    c2 = wordCount(values$, ",") + 1
+
+    IF c1 <> c2 OR tag$ = "" THEN EXIT SUB
+    DIM pros$(c1), vals$(c1)
+    k = 1
+    FOR i = 1 TO LEN(properties$)
+        ca$ = MID$(properties$, i, 1)
+        IF ca$ = "," THEN ca$ = "": k = k + 1
+        pros$(k) = pros$(k) + ca$
+    NEXT
+    k = 1
+    FOR i = 1 TO LEN(values$)
+        ca$ = MID$(values$, i, 1)
+        IF ca$ = "," THEN ca$ = "": k = k + 1
+        vals$(k) = vals$(k) + ca$
+    NEXT
+    FOR i = 1 TO c1
+        bbb$ = bbb$ + pros$(i) + "=" + CHR$(34) + vals$(i) + CHR$(34) + " "
+    NEXT
+    final_code$ = "<" + tag$ + " " + LEFT$(bbb$, LEN(bbb$) - 1) + "/>"
+    IF XMLValid = 1 THEN
+        PRINT #XMLFileHandle%, final_code$
+        xmlerrormessage$ = "data written successfully - " + final_code$
+    ELSE
+        xmlerrormessage$ = "Fatal Error! No file is open to write XML!. Use openXML() to write a file."
+    END IF
+END SUB
+
+SUB openXML (f$)
+    SHARED XMLFileHandle%
+    SHARED XMLValid
+    SHARED XMLFileName$
+    SHARED xmlerrormessage$
+    XMLFileHandle% = FREEFILE
+    XMLValid = 1
+    XMLFileName$ = f$
+    OPEN XMLFileName$ FOR OUTPUT AS #XMLFileHandle%
+    xmlerrormessage$ = "file opened successfully"
+END SUB
+
+SUB closeXML ()
+    SHARED XMLFileHandle%
+    SHARED XMLValid
+    SHARED XMLFileName$
+    SHARED xmlerrormessage$
+    IF XMLValid THEN
+        CLOSE #XMLFileHandle%
+        XMLValid = 0
+        xmlerrormessage$ = "File successfully closed"
+    ELSE
+        xmlerrormessage$ = "No file is opened to write. Use openXML() first!"
+    END IF
+END SUB
